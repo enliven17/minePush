@@ -1,11 +1,11 @@
 {
-  "name": "minesomnia-contracts",
+  "name": "minepush-contracts",
   "version": "1.0.0",
-  "description": "Smart contracts for MineSomnia game",
+  "description": "Smart contracts for MinePush game",
   "main": "index.js",
   "scripts": {
     "compile": "npx hardhat compile",
-    "deploy": "npx hardhat run scripts/deploy.js --network somniaTestnet",
+    "deploy": "npx hardhat run scripts/deploy.js --network pushDonutTestnet",
     "deploy:local": "npx hardhat run scripts/deploy.js --network hardhat",
     "test": "npx hardhat test"
   },

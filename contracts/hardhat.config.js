@@ -5,9 +5,9 @@ require("dotenv").config();
 module.exports = {
   solidity: "0.8.19",
   networks: {
-    somnia: {
-      url: "https://dream-rpc.somnia.network",
-      chainId: 50312,
+    pushDonutTestnet: {
+      url: "https://evm.rpc-testnet-donut-node1.push.org/",
+      chainId: 42101,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
     hardhat: {
@@ -19,15 +19,15 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      somnia: "ETHERSCAN_API_KEY",
+      pushDonutTestnet: "ETHERSCAN_API_KEY",
     },
     customChains: [
       {
-        network: "somnia",
-        chainId: 50312,
+        network: "pushDonutTestnet",
+        chainId: 42101,
         urls: {
-          apiURL: "https://shannon-explorer.somnia.network/api",
-          browserURL: "https://shannon-explorer.somnia.network",
+          apiURL: "https://donut.push.network/api",
+          browserURL: "https://donut.push.network",
         },
       },
     ],

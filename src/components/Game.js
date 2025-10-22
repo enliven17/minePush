@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   getAccount, getContractWithSigner, getProvider,
   readGameStatus, getWalletBalance, calculateCurrentWinnings, getSharedPoolBalance,
-  switchToSomniaTestnet
+  switchToPushChainDonutTestnet
 } from '../config';
 import { ethers } from 'ethers';
 
@@ -84,7 +84,7 @@ function Game() {
       if (account) {
         setAccount(account);
         try {
-          await switchToSomniaTestnet();
+          await switchToPushChainDonutTestnet();
         } catch (networkError) {
           console.log('Network switch failed, continuing with current network');
         }
@@ -249,7 +249,7 @@ function Game() {
             </h2>
             <p className="mb-6">
               {modalState.isWin 
-                ? `You won ${ethers.formatEther(modalState.amount)} STT!`
+                ? `You won ${ethers.formatEther(modalState.amount)} PC!`
                 : 'Better luck next time!'
               }
             </p>
@@ -279,7 +279,7 @@ function Game() {
                       <div className="text-white text-sm font-mono mb-2">{account.slice(0, 6)}...{account.slice(-4)}</div>
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400 text-xs">Balance</span>
-                        <span className="text-green-400 text-base font-bold">{parseFloat(walletBalance).toFixed(4)} STT</span>
+                        <span className="text-green-400 text-base font-bold">{parseFloat(walletBalance).toFixed(4)} PC</span>
                       </div>
                     </div>
                   </div>
@@ -306,7 +306,7 @@ function Game() {
                     step="0.00000001"
                     style={{ width: 'calc(100% - 60px)' }}
                   />
-                  <span className="text-yellow-400 text-sm font-semibold bg-[#0f1419]/80 backdrop-blur-sm border border-[#3d4656]/50 rounded-xl px-3 py-2 whitespace-nowrap">STT</span>
+                  <span className="text-yellow-400 text-sm font-semibold bg-[#0f1419]/80 backdrop-blur-sm border border-[#3d4656]/50 rounded-xl px-3 py-2 whitespace-nowrap">PC</span>
                 </div>
                 <div className="flex gap-2">
                   <button 
@@ -367,7 +367,7 @@ function Game() {
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-300">Bet:</span>
-                      <span className="text-white font-semibold">{ethers.formatEther(game.betAmount)} STT</span>
+                      <span className="text-white font-semibold">{ethers.formatEther(game.betAmount)} PC</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-300">Mines:</span>
@@ -379,7 +379,7 @@ function Game() {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-300">Profit:</span>
-                      <span className="text-yellow-400 font-semibold">{ethers.formatEther(liveProfit)} STT</span>
+                      <span className="text-yellow-400 font-semibold">{ethers.formatEther(liveProfit)} PC</span>
                     </div>
                   </div>
                 ) : (
@@ -421,7 +421,7 @@ function Game() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-3xl pointer-events-none"></div>
             
             <div className="text-center mb-10">
-              <h1 className="text-4xl font-bold text-white mb-3">🎮 mineSomnia</h1>
+              <h1 className="text-4xl font-bold text-white mb-3">🎮 minePush</h1>
               <p className="text-gray-400 text-lg">Find the gems, avoid the mines!</p>
             </div>
 
@@ -445,7 +445,7 @@ function Game() {
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-3xl pointer-events-none"></div>
                 <div className="text-center relative z-10">
                   <div className="text-gray-200 text-lg mb-4 font-medium">💰 Current Profit</div>
-                  <div className="text-yellow-400 text-5xl font-bold mb-4">{ethers.formatEther(liveProfit)} STT</div>
+                  <div className="text-yellow-400 text-5xl font-bold mb-4">{ethers.formatEther(liveProfit)} PC</div>
                   <div className="bg-[#181f2a]/60 backdrop-blur-sm rounded-2xl p-6 border border-[#3d4656]/30">
                     <div className="text-green-400 text-lg font-semibold mb-3">
                       🎯 {game.revealedSafeTiles} safe tiles revealed

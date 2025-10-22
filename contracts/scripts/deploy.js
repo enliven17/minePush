@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 async function main() {
-  console.log("🚀 Deploying MineSomnia contract to Somnia Network...");
+  console.log("🚀 Deploying MinePush contract to Push Chain Donut Testnet...");
 
   // Get the signer
   const [deployer] = await hre.ethers.getSigners();
@@ -13,7 +13,7 @@ async function main() {
   console.log("📝 Deploying contracts with the account:", deployer.address);
   console.log("💰 Account balance:", (await hre.ethers.provider.getBalance(deployer.address)).toString());
 
-  // Deploy the MinesGame contract with high gas price for Somnia
+  // Deploy the MinesGame contract for Push Chain Donut Testnet
   const MinesGame = await hre.ethers.getContractFactory("MinesGame");
   const minesGame = await MinesGame.deploy({
     gasLimit: 3000000
@@ -21,17 +21,17 @@ async function main() {
   
   await minesGame.waitForDeployment();
 
-  console.log("✅ MineSomnia contract deployed to:", await minesGame.getAddress());
+  console.log("✅ MinePush contract deployed to:", await minesGame.getAddress());
   console.log("📋 Contract ABI and address saved to artifacts/");
 
   console.log("\n🎉 Deployment completed successfully!");
   console.log("📝 Contract Address:", await minesGame.getAddress());
-  console.log("🔗 Network: Somnia Network");
+  console.log("🔗 Network: Push Chain Donut Testnet");
   
   // Save deployment info
   const deploymentInfo = {
     contractAddress: await minesGame.getAddress(),
-    network: "Somnia Network",
+    network: "Push Chain Donut Testnet",
     deployer: deployer.address,
     timestamp: new Date().toISOString()
   };

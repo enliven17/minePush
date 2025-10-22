@@ -18,25 +18,25 @@ export const hardhatNetwork = {
   blockExplorerUrls: []
 };
 
-// Somnia Testnet Configuration
-export const somniaTestnet = {
-  chainId: 50312,
-  name: 'Somnia Testnet',
+// Push Chain Donut Testnet Configuration
+export const pushChainDonutTestnet = {
+  chainId: 42101,
+  name: 'Push Chain Donut Testnet',
   nativeCurrency: {
-    name: 'Somnia Token',
-    symbol: 'STT',
+    name: 'Push Chain Token',
+    symbol: 'PC',
     decimals: 18
   },
   rpcUrls: {
     default: {
-      http: ['https://dream-rpc.somnia.network']
+      http: ['https://evm.rpc-testnet-donut-node1.push.org/', 'https://evm.rpc-testnet-donut-node2.push.org/']
     }
   },
-  blockExplorerUrls: ['https://shannon-explorer.somnia.network']
+  blockExplorerUrls: ['https://donut.push.network']
 };
 
-// Contract address - latest deployed to Somnia Testnet
-const MINES_GAME_CONTRACT_ADDRESS = '0x3a8d19bedca566e04B10D829580Df4a039683b37';
+// Contract address - will be updated after deployment to Push Chain Donut Testnet
+const MINES_GAME_CONTRACT_ADDRESS = process.env.REACT_APP_MINES_CONTRACT_ADDRESS || '0x1E7F916d20eE180c2c373ea01651dd838Cd4a0Ac';
 
 // Provider and signer setup
 export const getProvider = () => {
@@ -181,12 +181,12 @@ export const calculateCurrentWinnings = async (gameData) => {
 };
 
 // Network switching
-export const switchToSomniaTestnet = async () => {
+export const switchToPushChainDonutTestnet = async () => {
   if (typeof window !== 'undefined' && window.ethereum) {
     try {
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: `0x${somniaTestnet.chainId.toString(16)}` }],
+        params: [{ chainId: `0x${pushChainDonutTestnet.chainId.toString(16)}` }],
       });
     } catch (switchError) {
       // This error code indicates that the chain has not been added to MetaMask
@@ -194,10 +194,10 @@ export const switchToSomniaTestnet = async () => {
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
-            params: [somniaTestnet],
+            params: [pushChainDonutTestnet],
           });
         } catch (addError) {
-          console.error('Error adding Somnia Testnet to MetaMask:', addError);
+          console.error('Error adding Push Chain Donut Testnet to MetaMask:', addError);
         }
       }
     }
