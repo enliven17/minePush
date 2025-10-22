@@ -6,7 +6,7 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
   console.log("Using account:", deployer.address);
 
-  const contractAddress = "0xAcb2aF1b66FA3e35C2710A6A551f3291BA34a15B";
+  const contractAddress = "0xD60763b504a2727e60d7D21b8086DAC192ba7679";
   const contract = await hre.ethers.getContractAt("MinesGame", contractAddress);
   
   console.log("Adding 10 PC to house funds...");

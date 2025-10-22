@@ -123,10 +123,22 @@ contract MinesGame {
     function calculateWinnings(uint256 betAmount, uint8 totalMines, uint8 revealedSafeTiles) public pure returns (uint256) {
         if (revealedSafeTiles == 0) return 0;
         
-        // Calculate multiplier based on mine count and revealed tiles
-        // This is a simplified calculation - can be made more complex
-        uint256 multiplier = (25 - totalMines) * revealedSafeTiles / 25;
-        return (betAmount * multiplier) / 100;
+        // Improved multiplier calculation
+        // Base multiplier increases with mine count and revealed tiles
+        uint256 baseMultiplier = 100; // 1.0x base
+        
+        // Each mine increases risk/reward
+        uint256 mineBonus = totalMines * 10; // 0.1x per mine
+        
+        // Each revealed safe tile compounds the multiplier
+        uint256 tileMultiplier = baseMultiplier + mineBonus;
+        for (uint8 i = 0; i < revealedSafeTiles; i++) {
+            tileMultiplier = (tileMultiplier * (100 + totalMines * 2)) / 100;
+        }
+        
+        // Calculate winnings (subtract original bet to get profit only)
+        uint256 totalPayout = (betAmount * tileMultiplier) / 100;
+        return totalPayout > betAmount ? totalPayout - betAmount : 0;
     }
 
     function getGameStatus(address player) external view returns (Game memory) {

@@ -36,7 +36,7 @@ export const pushChainDonutTestnet = {
 };
 
 // Contract address - updated after deployment to Push Chain Donut Testnet (Somnia)
-const MINES_GAME_CONTRACT_ADDRESS = process.env.REACT_APP_MINES_CONTRACT_ADDRESS || '0xAcb2aF1b66FA3e35C2710A6A551f3291BA34a15B';
+const MINES_GAME_CONTRACT_ADDRESS = process.env.REACT_APP_MINES_CONTRACT_ADDRESS || '0xD60763b504a2727e60d7D21b8086DAC192ba7679';
 
 // Provider and signer setup
 export const getProvider = () => {
