@@ -169,7 +169,7 @@ export const calculateCurrentWinnings = async (gameData) => {
   
   try {
     const winnings = await contract.calculateWinnings(
-      BigInt(gameData.betAmount), // Convert string to BigInt
+      window.BigInt(gameData.betAmount), // Convert string to BigInt
       gameData.totalMines,
       gameData.revealedSafeTiles
     );

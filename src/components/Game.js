@@ -199,7 +199,7 @@ function Game() {
     if (!game) return null;
     
     if (pendingTile === index) {
-      return <div className="w-6 h-6 border-2 border-t-green-400 border-gray-600 rounded-full animate-spin"></div>;
+      return <div className="w-6 h-6 border-2 border-t-purple-400 border-gray-600 rounded-full animate-spin"></div>;
     }
     
     if (game.revealedTiles[index]) {
@@ -215,26 +215,26 @@ function Game() {
 
   const getTileStyle = (index) => {
     if (!game) {
-      return "bg-[#181f2a] border-[#232b39] text-green-400 hover:bg-[#222b38]";
+      return "bg-[#2a1a3e] border-[#3d2b52] text-purple-400 hover:bg-[#342447]";
     }
     
     if (pendingTile === index) {
-      return "bg-[#2d3646] border-green-400 text-green-400";
+      return "bg-[#4c3663] border-purple-400 text-purple-400";
     }
     
     if (game.revealedTiles[index]) {
       if (game.mineLocations.includes(index)) {
         return "bg-red-900 border-red-600 text-red-400 animate-pulse";
       } else {
-        return "bg-green-900 border-green-600 text-green-400";
+        return "bg-purple-900 border-purple-600 text-purple-400";
       }
     }
     
-    return "bg-[#181f2a] border-[#232b39] text-green-400 hover:bg-[#222b38] cursor-pointer";
+    return "bg-[#2a1a3e] border-[#3d2b52] text-purple-400 hover:bg-[#342447] cursor-pointer";
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#181f2a] flex items-center justify-center py-8">
+    <div className="min-h-screen w-screen bg-gradient-to-br from-[#1a0d2e] to-[#2d1b3d] flex items-center justify-center py-8 fixed inset-0 overflow-auto">
       {error && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg">
           {error}
@@ -249,7 +249,7 @@ function Game() {
 
       {modalState.isOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[#232b39] text-white rounded-2xl p-8 text-center">
+          <div className="bg-[#3d2b52] text-white rounded-2xl p-8 text-center">
             <div className="text-6xl mb-4">
               {modalState.isWin ? '🎉' : '💥'}
             </div>
@@ -263,7 +263,7 @@ function Game() {
               }
             </p>
             {modalState.isWin && modalState.txHash && (
-              <div className="mb-6 p-4 bg-[#181f2a]/60 rounded-xl border border-[#3d4656]/30">
+              <div className="mb-6 p-4 bg-[#2a1a3e]/60 rounded-xl border border-[#5d4a6b]/30">
                 <p className="text-sm text-gray-300 mb-2">💰 Cash Out Transaction:</p>
                 <p className="text-xs text-gray-400 mb-3">
                   ✅ {ethers.formatEther(modalState.amount)} PC sent to your wallet
@@ -286,7 +286,7 @@ function Game() {
             )}
             <button
               onClick={() => setModalState({ isOpen: false, isWin: false, amount: '0', txHash: null })}
-              className="bg-[#7fff6a] text-[#181f2a] px-6 py-2 rounded-lg font-bold"
+              className="bg-gradient-to-r from-[#e879f9] to-[#f472b6] text-white px-6 py-2 rounded-lg font-bold"
             >
               {modalState.isWin ? 'Play Again' : 'Try Again'}
             </button>
@@ -295,10 +295,10 @@ function Game() {
       )}
 
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-8 items-center justify-center px-6">
-        <aside className="w-full max-w-xl bg-gradient-to-b from-[#232b39]/90 to-[#1a1f2a]/90 backdrop-blur-sm rounded-3xl shadow-2xl p-5 flex flex-col h-[700px] border border-[#3d4656]/50">
+        <aside className="w-full max-w-xl bg-gradient-to-b from-[#3d2b52]/90 to-[#2a1a3e]/90 backdrop-blur-sm rounded-3xl shadow-2xl p-5 flex flex-col h-[700px] border border-[#5d4a6b]/50">
           <div className="flex flex-col gap-4 flex-1">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gradient-to-r from-[#181f2a]/80 to-[#232b39]/80 backdrop-blur-sm rounded-2xl p-3 border border-[#3d4656]/50 shadow-lg">
+              <div className="bg-gradient-to-r from-[#2a1a3e]/80 to-[#3d2b52]/80 backdrop-blur-sm rounded-2xl p-3 border border-[#5d4a6b]/50 shadow-lg">
                 {account ? (
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -317,14 +317,14 @@ function Game() {
                 ) : (
                   <button 
                     onClick={connectWallet}
-                    className="w-full bg-gradient-to-r from-[#7fff6a] to-[#aaff99] hover:from-[#aaff99] hover:to-[#7fff6a] text-[#181f2a] font-bold rounded-2xl py-3 text-lg transition-all duration-150 shadow-lg"
+                    className="w-full bg-gradient-to-r from-[#e879f9] to-[#f472b6] hover:from-[#f472b6] hover:to-[#e879f9] text-white font-bold rounded-2xl py-3 text-lg transition-all duration-150 shadow-lg"
                   >
                     🔗 Connect Wallet
                   </button>
                 )}
               </div>
 
-              <div className="bg-[#181f2a]/40 backdrop-blur-sm rounded-2xl p-3 border border-[#3d4656]/30">
+              <div className="bg-[#2a1a3e]/40 backdrop-blur-sm rounded-2xl p-3 border border-[#5d4a6b]/30">
                 <label className="block text-gray-200 text-sm mb-2 font-medium">💰 Bet Amount</label>
                 <div className="flex items-center gap-2 mb-2">
                   <input
@@ -357,7 +357,7 @@ function Game() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#181f2a]/40 backdrop-blur-sm rounded-2xl p-3 border border-[#3d4656]/30">
+              <div className="bg-[#2a1a3e]/40 backdrop-blur-sm rounded-2xl p-3 border border-[#5d4a6b]/30">
                 <label className="block text-gray-200 text-sm mb-2 font-medium">💣 Mines</label>
                 <select
                   value={mineCount}
@@ -392,7 +392,7 @@ function Game() {
                 </div>
               </div>
 
-              <div className="bg-[#181f2a]/40 backdrop-blur-sm rounded-2xl p-3 border border-[#3d4656]/30">
+              <div className="bg-[#2a1a3e]/40 backdrop-blur-sm rounded-2xl p-3 border border-[#5d4a6b]/30">
                 <div className="text-gray-200 text-sm mb-2 font-medium">📈 Game Stats</div>
                 {game ? (
                   <div className="space-y-1 text-sm">
@@ -440,7 +440,7 @@ function Game() {
             <button 
               onClick={onStartGame}
               disabled={!account || game?.isActive || loading}
-              className="w-full bg-gradient-to-r from-[#7fff6a] to-[#aaff99] hover:from-[#aaff99] hover:to-[#7fff6a] disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-[#181f2a] font-bold rounded-2xl py-3 text-lg transition-all duration-150 shadow-lg"
+              className="w-full bg-gradient-to-r from-[#e879f9] to-[#f472b6] hover:from-[#f472b6] hover:to-[#e879f9] disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold rounded-2xl py-3 text-lg transition-all duration-150 shadow-lg"
             >
               {loading ? 'Starting...' : '🎯 Bet'} 
             </button>
@@ -448,7 +448,7 @@ function Game() {
         </aside>
 
         <main className="flex-1 flex flex-col items-center justify-center min-h-[700px]">
-          <div className="bg-gradient-to-br from-[#232b39]/90 to-[#1a1f2a]/90 backdrop-blur-sm rounded-3xl shadow-2xl p-12 flex flex-col items-center justify-center border border-[#3d4656]/50 relative overflow-hidden w-full max-w-4xl">
+          <div className="bg-gradient-to-br from-[#3d2b52]/90 to-[#2a1a3e]/90 backdrop-blur-sm rounded-3xl shadow-2xl p-12 flex flex-col items-center justify-center border border-[#5d4a6b]/50 relative overflow-hidden w-full max-w-4xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-3xl pointer-events-none"></div>
             
             <div className="text-center mb-10">
@@ -476,8 +476,8 @@ function Game() {
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-3xl pointer-events-none"></div>
                 <div className="text-center relative z-10">
                   <div className="text-gray-200 text-lg mb-4 font-medium">💰 Current Profit</div>
-                  <div className="text-yellow-400 text-5xl font-bold mb-4">{ethers.formatEther(liveProfit)} PC</div>
-                  <div className="bg-[#181f2a]/60 backdrop-blur-sm rounded-2xl p-6 border border-[#3d4656]/30">
+                  <div className="text-pink-400 text-5xl font-bold mb-4">{ethers.formatEther(liveProfit)} PC</div>
+                  <div className="bg-[#2a1a3e]/60 backdrop-blur-sm rounded-2xl p-6 border border-[#5d4a6b]/30">
                     <div className="text-green-400 text-lg font-semibold mb-3">
                       🎯 {game.revealedSafeTiles} safe tiles revealed
                     </div>
