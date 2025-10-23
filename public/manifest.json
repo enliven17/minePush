@@ -3,17 +3,17 @@
   "name": "minePush - Push Chain Mines Game",
   "icons": [
     {
-      "src": "minesomnialogo.png",
+      "src": "minepushlogo.png",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/png"
     },
     {
-      "src": "minesomnialogo.png",
+      "src": "minepushlogo.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "minesomnialogo.png",
+      "src": "minepushlogo.png",
       "type": "image/png",
       "sizes": "512x512"
     }

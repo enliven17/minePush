@@ -33,7 +33,7 @@ function Game() {
   const [mineCount, setMineCount] = useState(3);
   const [pendingTile, setPendingTile] = useState(null);
   const [error, setError] = useState(null);
-  const [modalState, setModalState] = useState({ isOpen: false, isWin: false, amount: '0' });
+  const [modalState, setModalState] = useState({ isOpen: false, isWin: false, amount: '0', txHash: null });
 
   const fetchAndUpdateState = useCallback(async (acc) => {
     if (!acc) return;
@@ -143,7 +143,7 @@ function Game() {
       await tx.wait();
       const newStatus = await fetchAndUpdateState(account);
       if (!newStatus || !newStatus.isActive) {
-        setModalState({ isOpen: true, isWin: false, amount: '0' });
+        setModalState({ isOpen: true, isWin: false, amount: '0', txHash: null });
       }
     } catch (err) {
       setError("Reveal failed: " + (err?.reason || err?.message || err));
@@ -162,9 +162,18 @@ function Game() {
       if (!contract) throw new Error('No contract instance available');
       
       const tx = await contract.cashOut();
+      console.log('Cash out transaction sent:', tx.hash);
+      
       await tx.wait();
+      console.log('Cash out transaction confirmed:', tx.hash);
+      
       await fetchAndUpdateState(account);
-      setModalState({ isOpen: true, isWin: true, amount: expectedPayout });
+      setModalState({ 
+        isOpen: true, 
+        isWin: true, 
+        amount: expectedPayout,
+        txHash: tx.hash
+      });
     } catch (err) {
       setError("Cashout failed: " + (err?.reason || err?.message || err));
     } finally {
@@ -247,14 +256,36 @@ function Game() {
             <h2 className="text-2xl font-bold mb-4">
               {modalState.isWin ? 'Congratulations!' : 'Game Over!'}
             </h2>
-            <p className="mb-6">
+            <p className="mb-4">
               {modalState.isWin 
                 ? `You won ${ethers.formatEther(modalState.amount)} PC!`
                 : 'Better luck next time!'
               }
             </p>
+            {modalState.isWin && modalState.txHash && (
+              <div className="mb-6 p-4 bg-[#181f2a]/60 rounded-xl border border-[#3d4656]/30">
+                <p className="text-sm text-gray-300 mb-2">💰 Cash Out Transaction:</p>
+                <p className="text-xs text-gray-400 mb-3">
+                  ✅ {ethers.formatEther(modalState.amount)} PC sent to your wallet
+                </p>
+                <div className="flex items-center justify-between bg-[#0f1419]/80 rounded-lg p-3">
+                  <span className="text-xs font-mono text-green-400 break-all">
+                    {modalState.txHash.slice(0, 10)}...{modalState.txHash.slice(-8)}
+                  </span>
+                  <button
+                    onClick={() => window.open(`https://donut.push.network/tx/${modalState.txHash}`, '_blank')}
+                    className="ml-2 text-blue-400 hover:text-blue-300 text-sm"
+                  >
+                    🔗 View
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 Transaction value shows 0 PC because the contract sends you the winnings internally
+                </p>
+              </div>
+            )}
             <button
-              onClick={() => setModalState({ isOpen: false, isWin: false, amount: '0' })}
+              onClick={() => setModalState({ isOpen: false, isWin: false, amount: '0', txHash: null })}
               className="bg-[#7fff6a] text-[#181f2a] px-6 py-2 rounded-lg font-bold"
             >
               {modalState.isWin ? 'Play Again' : 'Try Again'}
