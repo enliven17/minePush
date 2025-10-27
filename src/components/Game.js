@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePushChainClient, PushUniversalAccountButton, usePushWalletContext, PushUI } from '@pushchain/ui-kit';
 import {
   readGameStatus, getWalletBalance, calculateCurrentWinnings, getSharedPoolBalance
 } from '../config';
 import { ethers } from 'ethers';
+import { WalletButton } from './WalletButton';
 
 const GRID_SIZE = 25;
-const GRID_COLS = 5;
 
 const calculateMultiplier = (mines, safeTiles) => {
   if (safeTiles === 0) return 1;
@@ -44,13 +44,30 @@ function Game() {
     try {
       console.log('Sending transaction with Push Chain Client:', txData);
       
-      // Use Push Chain Client's sendTransaction method
-      const result = await pushChainClient.universal.sendTransaction(txData);
+      // Try different transaction formats for Push Chain
+      const transactionParams = {
+        to: txData.to,
+        data: txData.data,
+        value: txData.value || '0'
+      };
       
-      console.log('Transaction sent:', result);
+      // Add gas limit if provided
+      if (txData.gas) {
+        transactionParams.gasLimit = parseInt(txData.gas);
+      }
+      
+      console.log('Transaction params:', transactionParams);
+      
+      // Use Push Chain Client's sendTransaction method
+      const result = await pushChainClient.universal.sendTransaction(transactionParams);
+      
+      console.log('Transaction result:', result);
+      
+      // Return the result directly - Push Chain might handle confirmation differently
       return result;
     } catch (error) {
       console.error('Error sending transaction:', error);
+      console.error('Error details:', error.message, error.code, error.reason);
       throw error;
     }
   };
@@ -68,15 +85,18 @@ function Game() {
   const fetchAndUpdateState = useCallback(async (acc) => {
     if (!acc) return;
     try {
+      console.log('Fetching state for account:', acc);
       const [walletBal, status, poolBalanceBN] = await Promise.all([
         getWalletBalance(acc),
         readGameStatus(acc),
         getSharedPoolBalance()
       ]);
 
+      console.log('Fetched data:', { walletBal, status, poolBalanceBN });
       setWalletBalance(walletBal);
 
       if (status && status.isActive) {
+        console.log('Game is active, updating state:', status);
         setGame(status);
         const theoreticalProfitBN = await calculateCurrentWinnings(status);
         const betAmountBN = BigInt(status.betAmount);
@@ -98,6 +118,7 @@ function Game() {
         
         setLiveProfit(actualProfitBN.toString());
       } else {
+        console.log('Game is not active or status is null');
         setGame(null);
         setLiveProfit('0');
       }
@@ -133,23 +154,27 @@ function Game() {
     try {
       console.log('Starting game with:', { mineCount, betAmount, account });
       
-      const valueInWei = ethers.parseEther(betAmount);
-      console.log('Parsed bet amount:', valueInWei.toString());
+      // For Push Chain, use bet amount exactly as entered
+      const valueInWei = betAmount; // Use input exactly as is
+      console.log('Bet amount (exact input):', valueInWei);
       
       // Encode the function call
-      const MinesGameContract = await import('../MinesGame.json');
-      const iface = new ethers.Interface(MinesGameContract.abi);
+      const SimpleMinesGameContract = await import('../SimpleMinesGame.json');
+      const iface = new ethers.Interface(SimpleMinesGameContract.abi);
       const data = iface.encodeFunctionData('startGame', [mineCount]);
       
+      console.log('Encoded data for startGame:', data);
+      console.log('Parameters:', { mineCount, type: typeof mineCount });
       console.log('Sending transaction to contract...');
       
-      // Send transaction using Push Chain Client
-      await sendPushTransaction({
+      // Send transaction directly using Push Chain Client
+      const result = await pushChainClient.universal.sendTransaction({
         to: process.env.REACT_APP_MINES_CONTRACT_ADDRESS,
         data: data,
-        value: valueInWei.toString(),
-        gas: 3000000n,
+        value: valueInWei.toString()
       });
+      
+      console.log('Start game transaction result:', result);
       
       console.log('Transaction sent successfully');
       
@@ -168,34 +193,84 @@ function Game() {
 
   const onRevealTile = async (index) => {
     if (!game?.isActive || loading || pendingTile !== null) return;
+    console.log('Revealing tile:', index);
     setPendingTile(index);
     setError(null);
+    
+    // Local tile reveal - no blockchain transaction needed
     try {
-      // Encode the function call
-      const MinesGameContract = await import('../MinesGame.json');
-      const iface = new ethers.Interface(MinesGameContract.abi);
-      const data = iface.encodeFunctionData('revealTile', [index]);
+      // Wait a bit to simulate processing
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Send transaction using Push Chain Client
-      await sendPushTransaction({
-        to: process.env.REACT_APP_MINES_CONTRACT_ADDRESS,
-        data: data,
-        value: '0',
-        gas: 500000n,
-      });
+      // Update game state locally
+      const updatedGame = { 
+        ...game,
+        revealedTiles: [...game.revealedTiles],
+        mineLocations: [...game.mineLocations]
+      };
+      updatedGame.revealedTiles[index] = true;
       
-      // Wait for transaction to be mined
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Randomly determine if it's a mine or safe (for demo)
+      const isMine = Math.random() < (game.totalMines / 25);
       
-      const newStatus = await fetchAndUpdateState(account);
-      if (!newStatus || !newStatus.isActive) {
+      if (isMine) {
+        // Hit a mine - game over
+        updatedGame.isActive = false;
+        if (!updatedGame.mineLocations.includes(index)) {
+          updatedGame.mineLocations = [...updatedGame.mineLocations, index];
+        }
+        setGame(updatedGame);
+        
+        // Call contract to end game as lost
+        try {
+          await pushChainClient.universal.sendTransaction({
+            to: process.env.REACT_APP_MINES_CONTRACT_ADDRESS,
+            data: new ethers.Interface(['function endGameAsLost()']).encodeFunctionData('endGameAsLost'),
+            value: '0'
+          });
+        } catch (contractError) {
+          console.log('Contract call failed, but continuing with local state');
+        }
+        
         setModalState({ isOpen: true, isWin: false, amount: '0', txHash: null });
+      } else {
+        // Safe tile
+        updatedGame.revealedSafeTiles += 1;
+        setGame(updatedGame);
+        
+        // Update live profit based on revealed safe tiles
+        const newProfit = calculateLocalProfit(game.betAmount, game.totalMines, updatedGame.revealedSafeTiles);
+        setLiveProfit(newProfit);
       }
+      
     } catch (err) {
+      console.error('Reveal tile error:', err);
       setError("Reveal failed: " + (err?.reason || err?.message || err));
     } finally {
       setPendingTile(null);
     }
+  };
+  
+  // Calculate profit locally
+  const calculateLocalProfit = (betAmount, totalMines, safeTiles) => {
+    if (safeTiles === 0) return '0';
+    
+    const totalTiles = 25;
+    const safeTilesRemaining = totalTiles - totalMines;
+    
+    let multiplier = 100; // Start with 1.00x
+    let tilesLeft = totalTiles;
+    
+    for (let i = 0; i < safeTiles; i++) {
+      multiplier = Math.floor(multiplier * tilesLeft / (safeTilesRemaining - i));
+      tilesLeft--;
+    }
+    
+    // Apply house edge (5%)
+    multiplier = Math.floor(multiplier * 95 / 100);
+    
+    const profit = (BigInt(betAmount) * BigInt(multiplier)) / 100n - BigInt(betAmount);
+    return profit.toString();
   };
 
   const onCashOut = async () => {
@@ -203,35 +278,38 @@ function Game() {
     setLoading(true);
     setError(null);
     const expectedPayout = (BigInt(game.betAmount) + BigInt(liveProfit)).toString();
+    
     try {
-      // Encode the function call
-      const MinesGameContract = await import('../MinesGame.json');
-      const iface = new ethers.Interface(MinesGameContract.abi);
-      const data = iface.encodeFunctionData('cashOut', []);
-      
       console.log('Sending cash out transaction...');
       
-      // Send transaction using Push Chain Client
-      const result = await sendPushTransaction({
+      // Call the new contract's cashOut function with safe tiles count
+      const iface = new ethers.Interface(['function cashOut(uint256 safeTilesRevealed)']);
+      const data = iface.encodeFunctionData('cashOut', [game.revealedSafeTiles]);
+      
+      const result = await pushChainClient.universal.sendTransaction({
         to: process.env.REACT_APP_MINES_CONTRACT_ADDRESS,
         data: data,
-        value: '0',
-        gas: 500000n,
+        value: '0'
       });
       
-      console.log('Cash out transaction sent');
+      console.log('Cash out transaction sent:', result);
       
       // Wait for transaction to be mined
       await new Promise(resolve => setTimeout(resolve, 3000));
       
-      await fetchAndUpdateState(account);
+      // End the game locally
+      const updatedGame = { ...game, isActive: false };
+      setGame(updatedGame);
+      
       setModalState({ 
         isOpen: true, 
         isWin: true, 
         amount: expectedPayout,
-        txHash: result?.hash || 'pending'
+        txHash: result?.hash || result?.transactionHash || 'completed'
       });
+      
     } catch (err) {
+      console.error('Cashout error:', err);
       setError("Cashout failed: " + (err?.reason || err?.message || err));
     } finally {
       setLoading(false);
@@ -355,7 +433,7 @@ function Game() {
                       <div className="text-white text-sm font-mono mb-2">{account.slice(0, 6)}...{account.slice(-4)}</div>
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400 text-xs">Balance</span>
-                        <span className="text-purple-400 text-base font-bold">{parseFloat(walletBalance).toFixed(4)} PC</span>
+                        <span className="text-purple-400 text-base font-bold">{(parseFloat(ethers.formatEther(walletBalance))).toFixed(4)} PC</span>
                       </div>
                     </div>
                   ) : null}

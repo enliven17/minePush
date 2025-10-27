@@ -1,5 +1,8 @@
 import { ethers } from 'ethers';
-import MinesGameContract from './MinesGame.json';
+import SimpleMinesGameContract from './SimpleMinesGame.json';
+
+// Define BigInt for older environments
+/* global BigInt */
 
 // Local Hardhat Network Configuration
 export const hardhatNetwork = {
@@ -59,7 +62,7 @@ export const getContract = () => {
   
   return new ethers.Contract(
     MINES_GAME_CONTRACT_ADDRESS, 
-    MinesGameContract.abi, 
+    SimpleMinesGameContract.abi, 
     provider
   );
 };
@@ -70,7 +73,7 @@ export const getContractWithSigner = async (customSigner = null) => {
   
   return new ethers.Contract(
     MINES_GAME_CONTRACT_ADDRESS, 
-    MinesGameContract.abi, 
+    SimpleMinesGameContract.abi, 
     signer
   );
 };
@@ -89,7 +92,8 @@ export const getWalletBalance = async (address) => {
   if (!provider) return '0';
   
   const balance = await provider.getBalance(address);
-  return ethers.formatEther(balance);
+  // Return balance as is without formatting, or format with appropriate decimals
+  return balance.toString();
 };
 
 // Transaction creation functions
@@ -128,13 +132,15 @@ export const readGameStatus = async (playerAddress) => {
   try {
     const game = await contract.getGameStatus(playerAddress);
     return {
-      player: game.player,
+      player: game.playerAddr,
       betAmount: game.betAmount.toString(),
       totalMines: Number(game.totalMines),
-      revealedSafeTiles: Number(game.revealedSafeTiles),
-      revealedTiles: game.revealedTiles,
-      mineLocations: game.mineLocations.map(loc => Number(loc)),
+      revealedSafeTiles: 0, // Will be tracked locally
+      revealedTiles: new Array(25).fill(false), // Initialize empty grid
+      mineLocations: [], // Will be determined locally
       isActive: game.isActive,
+      startTime: game.startTime,
+      hasWon: game.hasWon
     };
   } catch (error) {
     console.error('Error reading game status:', error);
@@ -147,10 +153,10 @@ export const getSharedPoolBalance = async () => {
   if (!contract) return 0n;
   
   try {
-    const balance = await contract.getSharedPoolBalance();
+    const balance = await contract.getPoolBalance();
     return balance;
   } catch (error) {
-    console.error('Error reading shared pool balance:', error);
+    console.error('Error reading pool balance:', error);
     return 0n;
   }
 };
@@ -162,12 +168,13 @@ export const calculateCurrentWinnings = async (gameData) => {
   if (!contract) return 0n;
   
   try {
-    const winnings = await contract.calculateWinnings(
-      BigInt(gameData.betAmount), // Convert string to BigInt
+    const payout = await contract.calculatePayout(
+      BigInt(gameData.betAmount),
       gameData.totalMines,
       gameData.revealedSafeTiles
     );
-    return winnings;
+    // Return profit (payout - bet amount)
+    return payout - BigInt(gameData.betAmount);
   } catch (error) {
     console.error('Error calculating winnings:', error);
     return 0n;
