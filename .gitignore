@@ -7,7 +7,7 @@ yarn-error.log*
 # Production build
 build/
 dist/
-
+docsp
 # Environment variables and sensitive files
 .env
 .env.local

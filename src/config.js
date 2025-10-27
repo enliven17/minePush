@@ -35,15 +35,13 @@ export const pushChainDonutTestnet = {
   blockExplorerUrls: ['https://donut.push.network']
 };
 
-// Contract address - updated after deployment to Push Chain Donut Testnet (Somnia)
+// Contract address - updated after deployment to Push Chain Donut Testnet
 const MINES_GAME_CONTRACT_ADDRESS = process.env.REACT_APP_MINES_CONTRACT_ADDRESS || '0xD60763b504a2727e60d7D21b8086DAC192ba7679';
 
 // Provider and signer setup
 export const getProvider = () => {
-  if (typeof window !== 'undefined' && window.ethereum) {
-    return new ethers.BrowserProvider(window.ethereum);
-  }
-  return null;
+  // Always use Push Chain RPC for reads
+  return new ethers.JsonRpcProvider('https://evm.rpc-testnet-donut-node1.push.org/');
 };
 
 export const getSigner = async () => {
@@ -66,8 +64,8 @@ export const getContract = () => {
   );
 };
 
-export const getContractWithSigner = async () => {
-  const signer = await getSigner();
+export const getContractWithSigner = async (customSigner = null) => {
+  const signer = customSigner || await getSigner();
   if (!signer) return null;
   
   return new ethers.Contract(
@@ -79,12 +77,8 @@ export const getContractWithSigner = async () => {
 
 // Account management
 export const getAccount = async () => {
-  if (typeof window !== 'undefined' && window.ethereum) {
-    const accounts = await window.ethereum.request({ 
-      method: 'eth_requestAccounts' 
-    });
-    return accounts[0];
-  }
+  // This function is now deprecated and will be handled by Push Chain Client
+  // Return null as account management is handled by @pushchain/ui-kit
   return null;
 };
 
@@ -169,7 +163,7 @@ export const calculateCurrentWinnings = async (gameData) => {
   
   try {
     const winnings = await contract.calculateWinnings(
-      window.BigInt(gameData.betAmount), // Convert string to BigInt
+      BigInt(gameData.betAmount), // Convert string to BigInt
       gameData.totalMines,
       gameData.revealedSafeTiles
     );

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { usePushChainClient, PushUniversalAccountButton, usePushWalletContext, PushUI } from '@pushchain/ui-kit';
 import {
-  getAccount, getContractWithSigner, getProvider,
-  readGameStatus, getWalletBalance, calculateCurrentWinnings, getSharedPoolBalance,
-  switchToPushChainDonutTestnet
+  readGameStatus, getWalletBalance, calculateCurrentWinnings, getSharedPoolBalance
 } from '../config';
 import { ethers } from 'ethers';
 
@@ -24,7 +23,38 @@ const calculateMultiplier = (mines, safeTiles) => {
 };
 
 function Game() {
-  const [account, setAccount] = useState(null);
+  // Use Push Chain Client and Wallet Context
+  const { pushChainClient } = usePushChainClient();
+  const { connectionStatus } = usePushWalletContext();
+  
+  // Check if wallet is connected using connection status
+  const isConnected = connectionStatus === PushUI.CONSTANTS.CONNECTION.STATUS.CONNECTED;
+  
+  // Extract account info
+  const accountObj = pushChainClient?.universal?.account;
+  const account = typeof accountObj === 'string' ? accountObj : accountObj?.address;
+  
+  // Send transaction using Push Chain Client
+  const sendPushTransaction = async (txData) => {
+    if (!pushChainClient || !isConnected || !account) {
+      console.error('Missing requirements:', { pushChainClient: !!pushChainClient, isConnected, account });
+      throw new Error('Wallet not connected');
+    }
+    
+    try {
+      console.log('Sending transaction with Push Chain Client:', txData);
+      
+      // Use Push Chain Client's sendTransaction method
+      const result = await pushChainClient.universal.sendTransaction(txData);
+      
+      console.log('Transaction sent:', result);
+      return result;
+    } catch (error) {
+      console.error('Error sending transaction:', error);
+      throw error;
+    }
+  };
+  
   const [walletBalance, setWalletBalance] = useState('0');
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -49,7 +79,7 @@ function Game() {
       if (status && status.isActive) {
         setGame(status);
         const theoreticalProfitBN = await calculateCurrentWinnings(status);
-        const betAmountBN = window.BigInt(status.betAmount);
+        const betAmountBN = BigInt(status.betAmount);
         const theoreticalPayoutBN = betAmountBN + theoreticalProfitBN;
         
         let actualPayoutBN;
@@ -77,49 +107,54 @@ function Game() {
     }
   }, []);
 
-  const connectWallet = async () => {
-    try {
-      setError(null);
-      const account = await getAccount();
-      if (account) {
-        setAccount(account);
-        try {
-          await switchToPushChainDonutTestnet();
-        } catch (networkError) {
-          console.log('Network switch failed, continuing with current network');
-        }
-        await fetchAndUpdateState(account);
-      }
-    } catch (err) {
-      setError("Failed to connect wallet: " + (err?.reason || err?.message || err));
+  // Debug: Log wallet state
+  useEffect(() => {
+    console.log('Push Chain Client State:', { 
+      isConnected,
+      account,
+      connectionStatus,
+      pushChainClient: !!pushChainClient,
+      hasUniversal: !!pushChainClient?.universal,
+      hasSendTransaction: typeof pushChainClient?.universal?.sendTransaction === 'function'
+    });
+  }, [pushChainClient, account, isConnected, connectionStatus]);
+
+  // Fetch game state when account changes
+  useEffect(() => {
+    if (account && isConnected) {
+      fetchAndUpdateState(account);
     }
-  };
+  }, [account, isConnected, fetchAndUpdateState]);
 
   const onStartGame = async () => {
-    if (!account) return;
+    if (!account || !isConnected) return;
     setLoading(true);
     setError(null);
     try {
       console.log('Starting game with:', { mineCount, betAmount, account });
       
-      const contract = await getContractWithSigner();
-      if (!contract) throw new Error('No contract instance available');
-      
-      console.log('Contract address:', await contract.getAddress());
       const valueInWei = ethers.parseEther(betAmount);
       console.log('Parsed bet amount:', valueInWei.toString());
       
-      const estimatedGas = await contract.startGame.estimateGas(mineCount, { value: valueInWei });
-      console.log('Estimated gas:', estimatedGas.toString());
-      const gasLimit = (estimatedGas * 12n) / 10n;
-      const tx = await contract.startGame(mineCount, { 
-        value: valueInWei,
-        gasLimit
-      });
-      console.log('Transaction sent:', tx.hash);
+      // Encode the function call
+      const MinesGameContract = await import('../MinesGame.json');
+      const iface = new ethers.Interface(MinesGameContract.abi);
+      const data = iface.encodeFunctionData('startGame', [mineCount]);
       
-      await tx.wait();
-      console.log('Transaction confirmed');
+      console.log('Sending transaction to contract...');
+      
+      // Send transaction using Push Chain Client
+      await sendPushTransaction({
+        to: process.env.REACT_APP_MINES_CONTRACT_ADDRESS,
+        data: data,
+        value: valueInWei.toString(),
+        gas: 3000000n,
+      });
+      
+      console.log('Transaction sent successfully');
+      
+      // Wait a bit for transaction to be mined
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       await fetchAndUpdateState(account);
     } catch (err) {
@@ -136,11 +171,22 @@ function Game() {
     setPendingTile(index);
     setError(null);
     try {
-      const contract = await getContractWithSigner();
-      if (!contract) throw new Error('No contract instance available');
+      // Encode the function call
+      const MinesGameContract = await import('../MinesGame.json');
+      const iface = new ethers.Interface(MinesGameContract.abi);
+      const data = iface.encodeFunctionData('revealTile', [index]);
       
-      const tx = await contract.revealTile(index);
-      await tx.wait();
+      // Send transaction using Push Chain Client
+      await sendPushTransaction({
+        to: process.env.REACT_APP_MINES_CONTRACT_ADDRESS,
+        data: data,
+        value: '0',
+        gas: 500000n,
+      });
+      
+      // Wait for transaction to be mined
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
       const newStatus = await fetchAndUpdateState(account);
       if (!newStatus || !newStatus.isActive) {
         setModalState({ isOpen: true, isWin: false, amount: '0', txHash: null });
@@ -156,23 +202,34 @@ function Game() {
     if (!game || game.revealedSafeTiles === 0) return;
     setLoading(true);
     setError(null);
-    const expectedPayout = (window.BigInt(game.betAmount) + window.BigInt(liveProfit)).toString();
+    const expectedPayout = (BigInt(game.betAmount) + BigInt(liveProfit)).toString();
     try {
-      const contract = await getContractWithSigner();
-      if (!contract) throw new Error('No contract instance available');
+      // Encode the function call
+      const MinesGameContract = await import('../MinesGame.json');
+      const iface = new ethers.Interface(MinesGameContract.abi);
+      const data = iface.encodeFunctionData('cashOut', []);
       
-      const tx = await contract.cashOut();
-      console.log('Cash out transaction sent:', tx.hash);
+      console.log('Sending cash out transaction...');
       
-      await tx.wait();
-      console.log('Cash out transaction confirmed:', tx.hash);
+      // Send transaction using Push Chain Client
+      const result = await sendPushTransaction({
+        to: process.env.REACT_APP_MINES_CONTRACT_ADDRESS,
+        data: data,
+        value: '0',
+        gas: 500000n,
+      });
+      
+      console.log('Cash out transaction sent');
+      
+      // Wait for transaction to be mined
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       await fetchAndUpdateState(account);
       setModalState({ 
         isOpen: true, 
         isWin: true, 
         amount: expectedPayout,
-        txHash: tx.hash
+        txHash: result?.hash || 'pending'
       });
     } catch (err) {
       setError("Cashout failed: " + (err?.reason || err?.message || err));
@@ -181,19 +238,7 @@ function Game() {
     }
   };
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.ethereum) {
-      window.ethereum.on('accountsChanged', (accounts) => {
-        if (accounts.length > 0) {
-          setAccount(accounts[0]);
-          fetchAndUpdateState(accounts[0]);
-        } else {
-          setAccount(null);
-          setGame(null);
-        }
-      });
-    }
-  }, [fetchAndUpdateState]);
+
 
   const renderTileContent = (index) => {
     if (!game) return null;
@@ -299,29 +344,23 @@ function Game() {
           <div className="flex flex-col gap-4 flex-1">
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gradient-to-r from-[#2a1a3e]/80 to-[#3d2b52]/80 backdrop-blur-sm rounded-2xl p-3 border border-[#5d4a6b]/50 shadow-lg">
-                {account ? (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-gray-300 text-sm font-medium">💼 Wallet</div>
-                      <div className="text-green-400 text-xs font-semibold">Connected</div>
-                    </div>
-                    <div className="bg-[#0f1419]/60 backdrop-blur-sm rounded-xl p-2 border border-[#3d4656]/30">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-gray-300 text-sm font-medium">💼 Wallet</div>
+                    {isConnected && <div className="text-purple-400 text-xs font-semibold">Connected</div>}
+                  </div>
+                  {isConnected && account ? (
+                    <div className="bg-[#0f1419]/60 backdrop-blur-sm rounded-xl p-2 border border-[#5d4a6b]/30 mb-2">
                       <div className="text-gray-400 text-xs mb-1">Address</div>
                       <div className="text-white text-sm font-mono mb-2">{account.slice(0, 6)}...{account.slice(-4)}</div>
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400 text-xs">Balance</span>
-                        <span className="text-green-400 text-base font-bold">{parseFloat(walletBalance).toFixed(4)} PC</span>
+                        <span className="text-purple-400 text-base font-bold">{parseFloat(walletBalance).toFixed(4)} PC</span>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={connectWallet}
-                    className="w-full bg-gradient-to-r from-[#e879f9] to-[#f472b6] hover:from-[#f472b6] hover:to-[#e879f9] text-white font-bold rounded-2xl py-3 text-lg transition-all duration-150 shadow-lg"
-                  >
-                    🔗 Connect Wallet
-                  </button>
-                )}
+                  ) : null}
+                  <PushUniversalAccountButton />
+                </div>
               </div>
 
               <div className="bg-[#2a1a3e]/40 backdrop-blur-sm rounded-2xl p-3 border border-[#5d4a6b]/30">
@@ -439,10 +478,10 @@ function Game() {
             )}
             <button 
               onClick={onStartGame}
-              disabled={!account || game?.isActive || loading}
+              disabled={!isConnected || !account || game?.isActive || loading}
               className="w-full bg-gradient-to-r from-[#e879f9] to-[#f472b6] hover:from-[#f472b6] hover:to-[#e879f9] disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold rounded-2xl py-3 text-lg transition-all duration-150 shadow-lg"
             >
-              {loading ? 'Starting...' : '🎯 Bet'} 
+              {loading ? 'Starting...' : (isConnected ? '🎯 Bet' : '🔒 Connect Wallet First')} 
             </button>
           </div>
         </aside>
